@@ -17,17 +17,17 @@ import net.liftweb.http.js.JE.JsRaw
 class HelloWorld {
   def render = {
     "#scala-future *" #> Future {
-      println("::::::Future:::" + Thread.currentThread().getName())
       Thread.sleep(500); date
     } &
       "#lift-lafuture *" #> LAFuture.build {
-        println("::::::LAFuture:::" + Thread.currentThread().getName())
         Thread.sleep(600); date
       } &
       "#btn" #> SHtml.ajaxSubmit("Click", () => {
         val result = FutureService.processBusinessLogic
         println("::::::::Result:::" + result.isCompleted)
-        FutureWithJs(result, JsRaw("alert('hello,done future')").cmd).cmd
+        val js = FutureWithJs(result, JsRaw("alert('hello,done future')").cmd).cmd
+        println(":::::Done:::")
+        js
       })
   }
 
