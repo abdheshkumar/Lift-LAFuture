@@ -10,6 +10,7 @@ object FutureService {
    */
   def processBusinessLogic: Future[String] = {
     Future {
+      println(":::::::Run Scala Future::")
       Thread.sleep(2000)
       "Hello from scala future"
     }

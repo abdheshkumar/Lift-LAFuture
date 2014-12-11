@@ -10,19 +10,24 @@ import scala.concurrent.Future
 import net.liftweb.http.SHtml
 import net.liftweb.http.js.JsCmds
 import com.ontheserverside.lib.FutureService
-import com.ontheserverside.lib.FutureHelper
-import com.ontheserverside.lib.FutureHelper.FutureIsHereWithJsCmd
+import com.sun.org.glassfish.external.statistics.annotations.Reset
+import com.ontheserverside.lib.FutureWithJs
+import net.liftweb.http.js.JE.JsRaw
 
 class HelloWorld {
-  import FutureHelper.ScalaFutureToLaFuture._
   def render = {
-    "#scala-future *" #> Future { Thread.sleep(500); date } &
-      "#lift-lafuture *" #> LAFuture.build { Thread.sleep(600); date } &
-      "#btn" #> SHtml.ajaxButton("Click", () => {
-        val result: LAFuture[String] = FutureService.processBusinessLogic
-        FutureIsHereWithJsCmd(result, {
-          JsCmds.Run("alert('Hello,future done')")
-        }).cmd
+    "#scala-future *" #> Future {
+      println("::::::Future:::" + Thread.currentThread().getName())
+      Thread.sleep(500); date
+    } &
+      "#lift-lafuture *" #> LAFuture.build {
+        println("::::::LAFuture:::" + Thread.currentThread().getName())
+        Thread.sleep(600); date
+      } &
+      "#btn" #> SHtml.ajaxSubmit("Click", () => {
+        val result = FutureService.processBusinessLogic
+        println("::::::::Result:::" + result.isCompleted)
+        FutureWithJs(result, JsRaw("alert('hello,done future')").cmd).cmd
       })
   }
 
