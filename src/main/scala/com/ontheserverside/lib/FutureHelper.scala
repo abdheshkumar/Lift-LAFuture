@@ -11,25 +11,28 @@ import xml.{ Node, Elem, NodeSeq }
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
-case class FutureWithJs[T](future: Future[T], js: JsCmd) extends JsCmd with Loggable {
+object ScalaFutureToLaFuture {
 
-  val futureCompleted_? = (f: Future[T]) => f.isCompleted
-
-  lazy val updateFunc = SHtml.ajaxInvoke(() => {
-    println(":::updateFunc:::::::::")
-    resolveAndUpdate
-  }).exp.cmd
-
-  def resolveAndUpdate: JsCmd = {
-    if (futureCompleted_?(future)) {
-      println(":::::::resolveAndUpdate Scala Future:::futureCompleted_?(concreteFuture):" + futureCompleted_?(future))
-      js
-    } else {
-      println("TRY AGAIN::")
-      After(1 seconds, updateFunc)
+  implicit def scalaFutureToLaFuture[T](scf: Future[T])(implicit m: Manifest[T]): LAFuture[T] = {
+    val laf = new LAFuture[T]
+    scf.onSuccess {
+      case v: T => laf.satisfy(v)
+      case _ => laf.abort
     }
-
+    scf.onFailure { case e: Throwable => laf.fail(Failure(e.getMessage(), Full(e), Empty)) }
+    laf
   }
+}
+
+case class FutureWithJs[T](future: LAFuture[T], js: JsCmd) extends JsCmd with Loggable {
+
+  val futureCompleted_? = (f: LAFuture[T]) => f.isSatisfied
+
+  lazy val updateFunc = SHtml.ajaxInvoke(() => { resolveAndUpdate }).exp.cmd
+
+  def resolveAndUpdate: JsCmd =
+    if (futureCompleted_?(future)) js
+    else After(1 seconds, updateFunc)
 
   override val toJsCmd = updateFunc.toJsCmd
   val cmd = updateFunc
