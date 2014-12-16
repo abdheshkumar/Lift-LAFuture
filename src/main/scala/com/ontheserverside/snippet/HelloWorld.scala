@@ -11,7 +11,6 @@ import net.liftweb.http.SHtml
 import net.liftweb.http.js.JsCmds
 import com.ontheserverside.lib.FutureService
 import com.sun.org.glassfish.external.statistics.annotations.Reset
-import com.ontheserverside.lib.FutureWithJs
 import net.liftweb.http.js.JE.JsRaw
 
 class HelloWorld {

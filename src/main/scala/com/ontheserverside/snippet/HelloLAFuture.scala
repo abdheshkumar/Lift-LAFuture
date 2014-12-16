@@ -1,7 +1,7 @@
 package com.ontheserverside.snippet
 import java.text.SimpleDateFormat
+import com.ontheserverside.lib.FutureService._
 import java.util.Date
-import com.ontheserverside.lib.FutureBinds._
 import net.liftweb.actor.LAFuture
 import net.liftweb.util.Helpers._
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -9,20 +9,17 @@ import scala.concurrent.Future
 import net.liftweb.http.SHtml
 import net.liftweb.http.js.JsCmds
 import com.ontheserverside.lib._
-
-object HelloLAFuture {
-
-}
+import net.liftweb.actor.LAScheduler
+import scala.xml.NodeSeq
+import com.ontheserverside.lib.LiftHelper._
 
 class HelloLAFuture {
-  import ScalaFutureToLaFuture._
+
+  val f1: LAFuture[NodeSeq] = new LAFuture()
+  LAScheduler.execute(() => buttonAction(f1))
+
   def render = {
-    "#btnLA" #> SHtml.ajaxSubmit("Click LAFuture", () => {
-      val result: LAFuture[String] = FutureService.processBusinessLogic
-      FutureWithJs(result, {
-        JsCmds.Run("alert('Hello,future done')")
-      }).cmd
-    })
+    "#btnLA" #> f1
   }
 
   private def date: String = {

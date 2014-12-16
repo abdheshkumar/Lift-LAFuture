@@ -11,29 +11,56 @@ import xml.{ Node, Elem, NodeSeq }
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
-object ScalaFutureToLaFuture {
+/**
+ * This could be part of Lift
+ * @param la the LAFuture holding the NodeSeq to update the UI
+ */
 
-  implicit def scalaFutureToLaFuture[T](scf: Future[T])(implicit m: Manifest[T]): LAFuture[T] = {
-    val laf = new LAFuture[T]
-    scf.onSuccess {
-      case v: T => laf.satisfy(v)
-      case _ => laf.abort
-    }
-    scf.onFailure { case e: Throwable => laf.fail(Failure(e.getMessage(), Full(e), Empty)) }
-    laf
+case class FutureIsHere(la: LAFuture[NodeSeq], id: String) extends JsCmd with Loggable {
+
+  logger.debug(id)
+
+  val updatePage: JsCmd = if (la.isSatisfied) {
+    Replace(id, la.get)
+  } else {
+    tryAgain()
   }
+
+  private def tryAgain(): JsCmd = {
+    val funcName: String = S.request.flatMap(_._params.toList.headOption.map(_._1)).openOr("")
+    val retry = "setTimeout(function(){liftAjax.lift_ajaxHandler('%s=true', null, null, null)}, 3000)".format(funcName)
+    JE.JsRaw(retry).cmd
+  }
+
+  override val toJsCmd = updatePage.toJsCmd
 }
 
-case class FutureWithJs[T](future: LAFuture[T], js: JsCmd) extends JsCmd with Loggable {
+object LiftHelper extends Loggable {
+  implicit def laFutureNSTransform: CanBind[LAFuture[NodeSeq]] = new CanBind[LAFuture[NodeSeq]] {
+    def apply(future: => LAFuture[NodeSeq])(ns: NodeSeq): Seq[NodeSeq] = {
+      val elem: Option[Elem] = ns match {
+        case e: Elem => Some(e)
+        case nodeSeq if nodeSeq.length == 1 && nodeSeq(0).isInstanceOf[Elem] => Box.asA[Elem](nodeSeq(0))
+        case nodeSeq => None
+      }
 
-  val futureCompleted_? = (f: LAFuture[T]) => f.isSatisfied
+      val id: String = elem.map(_.attributes.filter(att => att.key == "id")).map { meta =>
+        tryo(meta.value.text).getOrElse(nextFuncName)
+      } getOrElse {
+        ""
+      }
 
-  lazy val updateFunc = SHtml.ajaxInvoke(() => { resolveAndUpdate }).exp.cmd
+      val ret: Option[NodeSeq] = ns.toList match {
+        case head :: tail => {
+          elem.map { e =>
+            e % ("id" -> id) ++ tail ++ Script(OnLoad(SHtml.ajaxInvoke(() => FutureIsHere(future, id)).exp.cmd))
+          }
+        }
 
-  def resolveAndUpdate: JsCmd =
-    if (futureCompleted_?(future)) js
-    else After(1 seconds, updateFunc)
+        case empty => None
+      }
 
-  override val toJsCmd = updateFunc.toJsCmd
-  val cmd = updateFunc
+      ret getOrElse NodeSeq.Empty
+    }
+  }
 }
