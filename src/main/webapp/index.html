@@ -6,16 +6,21 @@
 <script id="jquery" src="/classpath/jquery.js" type="text/javascript"></script>
 </head>
 <body>
-	<div data-lift="Form.ajax?class=form">
+	<!-- <div data-lift="Form.ajax?class=form">
 		<div id="main" data-lift="HelloWorld.render">
 			Scala Future: <span id="scala-future">Time goes here</span><br>
 			Lift LAFuture: <span id="lift-lafuture">Time goes here</span>
 		</div>
-	</div>
+	</div> -->
 
 	<div data-lift="Form.ajax?class=form">
 		<div class="laFuture" data-lift="HelloLAFuture">
 			LAFuture <span id="btnLA"></span>
+			<div class="itemLists">
+			<ul class="items"><li class="item"></li></ul>
+			<p>Enter Name: <input type="text" name="name" id="name" /></p>
+			<span id="btmSuccess"></span>
+			</div>
 		</div>
 	</div>
 </body>

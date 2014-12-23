@@ -12,14 +12,27 @@ import com.ontheserverside.lib._
 import net.liftweb.actor.LAScheduler
 import scala.xml.NodeSeq
 import com.ontheserverside.lib.LiftHelper._
+import net.liftweb.http.S
 
 class HelloLAFuture {
 
-  val f1: LAFuture[NodeSeq] = new LAFuture()
-  LAScheduler.execute(() => buttonAction(f1))
+  /*val f1: LAFuture[NodeSeq] = new LAFuture()
+  LAScheduler.execute(() => buttonAction(f1))*/
 
   def render = {
-    "#btnLA" #> f1
+    //    "#btnLA" #> f1 &
+    ".itemLists" #> SHtml.idMemoize {
+      itemXhtml =>
+        val lists = getList
+        ".item *" #> lists.map {
+          list => list
+        } &
+          "#btmSuccess" #> SHtml.ajaxSubmit("Save", () => {
+            val result = saveItem(S.param("name"))
+            JsCmds.SetValById("name", "") &
+              JsCmds.Alert("Item Added Successfully") & itemXhtml.setHtml
+          })
+    }
   }
 
   private def date: String = {
